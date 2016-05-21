@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="kXGwZQ" name="playa" projectType="guiapp" version="1.0.0"
+              bundleIdentifier="com.yourcompany.playa" includeBinaryInAppConfig="1"
+              jucerVersion="4.2.1">
+  <MAINGROUP id="ZvHYQ8" name="playa">
+    <GROUP id="{BBC9896B-7508-10C7-E22C-86307B2D407E}" name="Source">
+      <FILE id="o4sjXq" name="AudioFunctions.h" compile="0" resource="0"
+            file="Source/AudioFunctions.h"/>
+      <FILE id="uS8imi" name="AudioVisual.h" compile="0" resource="0" file="Source/AudioVisual.h"/>
+      <FILE id="hSe2FU" name="Display.h" compile="0" resource="0" file="Source/Display.h"/>
+      <FILE id="mIiDCk" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+      <FILE id="zt502I" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX" vstFolder="/SDKs/VST3 SDK" vst3Folder="/SDKs/VST3 SDK"
+               aaxFolder="" rtasFolder="">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="playa"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="playa"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../Downloads/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../Downloads/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_video" showAllCode="1" useLocalCopy="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_PLUGINHOST_VST="disabled" JUCE_PLUGINHOST_VST3="disabled"/>
+  <LIVE_SETTINGS>
+    <OSX/>
+  </LIVE_SETTINGS>
+</JUCERPROJECT>
