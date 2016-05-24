@@ -25,6 +25,7 @@ public:
         // initialise any special settings that your component needs.
         
         setSize(400,100);
+        addAndMakeVisible(volumeSlider);
     }
 
     ~Display()
@@ -40,19 +41,21 @@ public:
            drawing code..
         */
 
-       Rectangle<int> block( 0,0,400,100);
-        g.setColour(Colours::black);
-        g.fillRect(block); // draw some placeholder text
+       
+        
+        
     }
 
     void resized() override
     {
         // This method is where you should set the bounds of any child
         // components that your component contains..
+         volumeSlider.setBounds(100,400,getWidth()-20,20);
 
     }
 
 private:
+Slider volumeSlider;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Display)
 };
 

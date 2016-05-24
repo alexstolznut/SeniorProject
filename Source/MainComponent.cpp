@@ -57,14 +57,19 @@ public:
         playing=false;
         recording = true;
     }
+    
+//    void setTrack(int i)
+//    {
+//         track[i];
+//        std::cout<< "i equals: "<<i<<std::endl;
+//    }
+    
     void closeAD()
     {
         deviceManager.closeAudioDevice();
         audioDeviceStopped();
         playing = false;
         recording=false;
-        std::cout<<"recording: " << recording<<std::endl;
-        std::cout<<"playing " << playing<<std::endl;
     }
     
     void stop()
@@ -97,12 +102,13 @@ public:
                                 float** outputChannelData, int numOutputChannels,
                                 int numSamples) override
    {
-       std::cout<<"recording: " << recording<<std::endl;
-       std::cout<<"playing " << playing<<std::endl;
        
        
-       int oldSampleSize = trackOne.getNumSamples();
-       int channelNumber = trackOne.getNumChannels();
+       
+       int oldSampleSize = track[i].getNumSamples();
+       int channelNumber = track[i].getNumChannels();
+//       int oldSampleSize = trackOne.getNumSamples();
+//       int channelNumber = trackOne.getNumChannels();
 if (recording == true)
 {
     
@@ -149,7 +155,7 @@ if(playing == true)
                         float sample = trackOne.getSample(i, samples+position);
                         
                         outputChannelData[i][samples] = sample;
-                        //std::cout<<sample;
+                        
                     }
                 
                 }
@@ -159,6 +165,8 @@ if(playing == true)
      }
     }
 int position;
+    int i;
+AudioSampleBuffer track[3];
     
 private:
     AudioFormatManager formatManager;
@@ -475,32 +483,81 @@ public:
       
     }
     
-     void startRecording()
+    
+    
+   
+    
+    void buttonClicked (Button* button) override
+    {
+        if(button == &playButton1)
+        {
+          playButtonClicked();
+          
+          recorder.i = 0;
+        }
+        else if(button == &playButton2)
+        {
+            playButtonClicked();
+            
+            recorder.i = 1;
+        }
+        else if(button == &playButton3)
+        {
+            playButtonClicked();
+            
+            recorder.i = 2;
+        }
+        else if(button == &playButton4)
+        {
+            playButtonClicked();
+            
+            recorder.i = 3;
+        }
+        if(button == &stopButton1) stopButtonClicked();
+        if (button == &recordingButton1)
+        {
+            startRecording();
+            recorder.i = 0;
+        }
+        else if(button == &recordingButton2)
+        {
+            startRecording();
+            recorder.i = 1;
+        }
+        else if(button == &recordingButton3)
+        {
+            startRecording();
+            recorder.i = 2;
+        }
+        else if(button == &recordingButton4)
+        {
+            startRecording();
+            recorder.i = 3;
+        }
+       
+        if (button == &stopRecordingButton1)
+        {
+         stopRecording();
+        }
+    }
+    
+ 
+    void startRecording()
     {
         
+        setAudioChannels(0,0);
         recorder.playing=false;
         recorder.recording=true;
         recorder.startRec();
+        
         
     }
     void stopRecording()
     {
         recorder.stop();
         recorder.recording = false;
+        
     }
-    
-   
-    
-    void buttonClicked (Button* button) override
-    {
-        if(button == &playButton1) playButtonClicked();
-        if(button == &stopButton1) stopButtonClicked();
-        if (button == &recordingButton1) startRecording();
-        if (button == &stopRecordingButton1) stopRecording();
-    }
-    
- 
-    
   
     
     
