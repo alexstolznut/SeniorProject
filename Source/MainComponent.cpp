@@ -12,9 +12,11 @@
 #ifndef MAINCOMPONENT_H_INCLUDED
 #define MAINCOMPONENT_H_INCLUDED
 
+#define NUMBEROFTRACKS 3
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Display.h"
 #include "AudioVisual.h"
+#include "Measure.h"
 
 
 //==============================================================================
@@ -22,7 +24,94 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-
+//class masterPlayer  :   public AudioIODeviceCallback
+//{
+//public:
+//    masterPlayer
+//    :   masterSampleRate(0), nextSampleNum(0)
+//    {
+//        void starMastertAD()
+//        {
+//            deviceManager.addAudioCallback(this);
+//            deviceManager.initialise(2, 2, 0, true, "Headphones", nullptr);
+//        }
+//        
+//        void closeMasterAD()
+//        {
+//            deviceManager.closeAudioDevice();
+//            audioDeviceStopped();
+//        }
+//        void audioDeviceAboutToStart (AudioIODevice* device) override
+//        {
+//            
+//            sampleRate = device -> getCurrentSampleRate();
+//        }
+//        
+//        void audioDeviceStopped() override
+//        {
+//            sampleRate = 0;
+//        }
+//        
+//        void AudioIODeviceCallback(const float** inputChannelData, int numInputChannels,
+//                                   float** outputChannelData, int numOutputChannels,
+//                                   int numSamples)override
+//        {
+//            int oldSampleSize[3];
+//            int channelNumber[3];
+//            
+//            for(int i=0; i<3; ++i)
+//            {
+//                int masterOldSampleSize[i] = recorder.track[i].getNumSamples() * 4;
+//                int masterChannelNumber[i] = recorder.track[i].getNumChannels();
+//                
+//                setSize.masterBuffer[i](masterBuffer[i].getNumChannels(),
+//                                        masterOldSampleSize[i] + numSamples,
+//                                        true,
+//                                        true,
+//                                        false);
+//            }
+//            for(int j=0; j<channelNumber[0]; ++j)
+//            {
+//                for(int masterTrackNumber=0; masterTrackNumber<3;++masterTrackNumber)
+//                {
+//                    addFrom.masterBuffer[masterTrackNumber](j, masterOldSampleSize, recorder.track[masterTrackNumber], recorder.track[0].getNumChannels(), 0, numSamples);
+//                }
+//
+//            }
+//            if(masterPlay == true)
+//            {
+//                for(int samples=0; samples<numSamples; ++samples)
+//                {
+//                    if(++masterPosition > masterBuffer[masterTrackNumber].getNumSamples()-numSamples)
+//                    {
+//                        masterPosition = 0;
+//                    }
+//                    for (int i = 0; i < numOutputChannels; ++i)
+//                    {
+//                        if (outputChannelData[i] != nullptr)
+//                        {
+//                            float sample = track[trackNumber].getSample(i, samples+position);
+//                            outputChannelData[i][samples] = sample;
+//                        }
+//                    }
+//                }
+//                
+//            }
+//            
+//        }
+//        
+//    }
+//
+//    bool masterPlay;
+//private:
+//    AudioDeviceManager masterDeviceManager;
+//    double masterSampleRate;
+//    int64 nextSampleNum;
+//    AudioSampleBuffer masterBuffer[3];
+//    TimeSliceThread masterBackgroundThread;
+//    int masterTrackNumber;
+//    recorda recorder;
+//};
 class recorda   :   public AudioIODeviceCallback
 {
 
@@ -34,8 +123,10 @@ public:
     
     {
         backgroundThread.startThread();
-        
-        trackOne.setSize(2, 0, false, true, false);
+        for (int i =0; i<3; ++i)
+        {
+            resetBuffer(i);
+        }
     }
     
     ~recorda()
@@ -43,7 +134,10 @@ public:
         stop();
     }
     
-    
+    void resetBuffer(int trackNum)
+    {
+        track[trackNum].setSize(2, 0, false, true, false);
+    }
     void startAD()
     {
         deviceManager.addAudioCallback(this);
@@ -53,16 +147,11 @@ public:
     {
         
         startAD();
-        trackOne.clear();
+        resetBuffer(trackNumber);
         playing=false;
         recording = true;
     }
     
-//    void setTrack(int i)
-//    {
-//         track[i];
-//        std::cout<< "i equals: "<<i<<std::endl;
-//    }
     
     void closeAD()
     {
@@ -78,6 +167,7 @@ public:
         closeAD();
        
     }
+ 
 
     
     bool playing;
@@ -105,67 +195,83 @@ public:
        
        
        
-       int oldSampleSize = track[i].getNumSamples();
-       int channelNumber = track[i].getNumChannels();
-//       int oldSampleSize = trackOne.getNumSamples();
-//       int channelNumber = trackOne.getNumChannels();
-if (recording == true)
-{
+       int oldSampleSize = track[trackNumber].getNumSamples();
+       int channelNumber = track[trackNumber].getNumChannels();
+
+       if (recording == true)
+       {
+           track[trackNumber].setSize( track[trackNumber].getNumChannels(),
+                             oldSampleSize + numSamples,
+                             true,
+                             true,
+                             false);
+//       trackOneOutput.setSize(trackOneOutput.getNumChannels(),
+//                              oldSampleSize + numSamples,
+//                              true,
+//                              true,
+//                              false);
     
-       trackOne.setSize( trackOne.getNumChannels(),
-                        oldSampleSize + numSamples,
-                        true,
-                        true,
-                        false);
-       trackOneOutput.setSize(trackOneOutput.getNumChannels(),
-                              oldSampleSize + numSamples,
-                              true,
-                              true,
-                              false);
-       
-       for(int j = 0; j < channelNumber; ++j){
-           
-           trackOne.copyFrom(j, oldSampleSize, inputChannelData[j], numSamples);
+           for(int j = 0; j < channelNumber; ++j)
+           {
+               track[trackNumber].copyFrom(j, oldSampleSize, inputChannelData[j], numSamples);
+           }
+           for(int i=0; i<numOutputChannels; ++i)
+           {
+               if(outputChannelData[i] != nullptr)
+               {
+                   FloatVectorOperations::clear(outputChannelData[i], numSamples);
+               }
+           }
        }
-        for(int i=0; i<numOutputChannels; ++i)
-        {
-            if(outputChannelData[i] != nullptr)
-            {
-                FloatVectorOperations::clear(outputChannelData[i], numSamples);
-            }
-        }
-
-    }
        
-if(playing == true)
-{
+       if(playing == true)
+       {
+           for(int samples=0; samples<numSamples; ++samples)
+           {
+               if(++position > track[trackNumber].getNumSamples()-numSamples)
+               {
+                   position = 0;
+               }
+               for (int i = 0; i < numOutputChannels; ++i)
+               {
+                   if (outputChannelData[i] != nullptr)
+                   {
+                       float sample = track[trackNumber].getSample(i, samples+position);
+                       outputChannelData[i][samples] = sample;
+                   }
+               }
+           }
+       }
+       
+       
+//       if(playing == true)
+//       {
+//           int newPositionValue = position;
+//           for (int i = 0; i < numOutputChannels; ++i)
+//           {
+//               if (outputChannelData[i] != nullptr)
+//               {
+//                   position = newPositionValue;
+//                   for(int samples=0; samples<numSamples; ++samples)
+//                   {
+//                       if(++position > track[trackNumber].getNumSamples()-numSamples)
+//                       {
+//                           position = 0;
+//                       }
+//                       
+//                       float sample = track[trackNumber].getSample(i, samples+position);
+//                       outputChannelData[i][samples] = sample;
+//                   }
+//               }
+//           }
+//           //           std::cout<<position<<std::endl;
+//       }
 
-   
-      for (int i = 0; i < numOutputChannels; ++i)
-            {
-               if (outputChannelData[i] != nullptr)
-                {
-                    for(int samples=0; samples<numSamples; ++samples)
-                    {
-                        if(position >= trackOne.getNumSamples())
-                        {
-                            
-                            position = 0;
-                        }
-                        float sample = trackOne.getSample(i, samples+position);
-                        
-                        outputChannelData[i][samples] = sample;
-                        
-                    }
-                
-                }
-          }
-           position += numSamples;
-    std::cout<<position<<std::endl;
-     }
     }
+
+
 int position;
-    int i;
+int trackNumber;
 AudioSampleBuffer track[3];
     
 private:
@@ -176,7 +282,7 @@ private:
     ScopedPointer<AudioFormatReaderSource> currentRecordingSource;
     double sampleRate;
     int64 nextSampleNum;
-//       track[0];
+
     AudioSampleBuffer trackOne, trackOneOutput, trackTwo, trackThree, trackFour;
     AudioDeviceManager deviceManager;
     
@@ -378,12 +484,43 @@ public:
       
         
         
-        
-        
+        addAndMakeVisible(measure);
+        measure.button1.addListener(this);
+        measure.button2.addListener(this);
+        measure.button3.addListener(this);
+        measure.button4.addListener(this);
+        measure.button5.addListener(this);
+        measure.button6.addListener(this);
+        measure.button7.addListener(this);
+        measure.button8.addListener(this);
+        measure.button9.addListener(this);
+        measure.button10.addListener(this);
+        measure.button11.addListener(this);
+        measure.button12.addListener(this);
+        measure.button13.addListener(this);
+        measure.button14.addListener(this);
+        measure.button15.addListener(this);
+        measure.button16.addListener(this);
+        measure.button17.addListener(this);
+        measure.button18.addListener(this);
+        measure.button19.addListener(this);
+        measure.button20.addListener(this);
+        measure.button21.addListener(this);
+        measure.button22.addListener(this);
+        measure.button23.addListener(this);
+        measure.button24.addListener(this);
+        measure.button25.addListener(this);
+        measure.button26.addListener(this);
+        measure.button27.addListener(this);
+        measure.button28.addListener(this);
+        measure.button29.addListener(this);
+        measure.button30.addListener(this);
+        measure.button31.addListener(this);
+        measure.button32.addListener(this);
         
         
 
-        setSize (800, 600);
+        setSize (800, 800);
         
         formatManager.registerBasicFormats();
         deviceManager.removeAudioCallback(&audioVis);
@@ -446,6 +583,48 @@ public:
         
         Rectangle<int> stuff (getLocalBounds());
         
+        
+        measure.setBounds(350,100,450,400);
+        measure.button1.setBounds(50,70,10,10);
+        measure.button2.setBounds(100,70,10,10);
+        measure.button3.setBounds(150,70,10,10);
+        measure.button4.setBounds(200,70,10,10);
+        measure.button5.setBounds(250,70,10,10);
+        measure.button6.setBounds(300,70,10,10);
+        measure.button7.setBounds(350,70,10,10);
+        measure.button8.setBounds(400,70,10,10);
+        
+        //Sound Two
+        measure.button9.setBounds(50,145,10,10);
+        measure.button10.setBounds(100,145,10,10);
+        measure.button11.setBounds(150,145,10,10);
+        measure.button12.setBounds(200,145,10,10);
+        measure.button13.setBounds(250,145,10,10);
+        measure.button14.setBounds(300,145,10,10);
+        measure.button15.setBounds(350,145,10,10);
+        measure.button16.setBounds(400,145,10,10);
+        
+        //Sound Three
+        measure.button17.setBounds(50,220,10,10);
+        measure.button18.setBounds(100,220,10,10);
+        measure.button19.setBounds(150,220,10,10);
+        measure.button20.setBounds(200,220,10,10);
+        measure.button21.setBounds(250,220,10,10);
+        measure.button22.setBounds(300,220,10,10);
+        measure.button23.setBounds(350,220,10,10);
+        measure.button24.setBounds(400,220,10,10);
+        
+        //Sound Four
+        
+        measure.button25.setBounds(50,295,10,10);
+        measure.button26.setBounds(100,295,10,10);
+        measure.button27.setBounds(150,295,10,10);
+        measure.button28.setBounds(200,295,10,10);
+        measure.button29.setBounds(250,295,10,10);
+        measure.button30.setBounds(300,295,10,10);
+        measure.button31.setBounds(350,295,10,10);
+        measure.button32.setBounds(400,295,10,10);
+        
         //Track One
         recordingThumb1.setBounds(stuff.removeFromTop(100).removeFromRight(600).reduced(8));
         
@@ -491,61 +670,530 @@ public:
     {
         if(button == &playButton1)
         {
-          playButtonClicked();
-          
-          recorder.i = 0;
+            playButtonClicked(0);
         }
         else if(button == &playButton2)
         {
-            playButtonClicked();
-            
-            recorder.i = 1;
+            playButtonClicked(1);
         }
         else if(button == &playButton3)
         {
-            playButtonClicked();
-            
-            recorder.i = 2;
+            playButtonClicked(2);
         }
         else if(button == &playButton4)
         {
-            playButtonClicked();
-            
-            recorder.i = 3;
+            playButtonClicked(3);
         }
-        if(button == &stopButton1) stopButtonClicked();
+        if(button == &stopButton1)
+        {
+            stopButtonClicked();
+        }
+        if(button == &stopButton2)
+        {
+            stopButtonClicked();
+        }
+        if(button == &stopButton3)
+        {
+            stopButtonClicked();
+        }
+        if(button == &stopButton4)
+        {
+            stopButtonClicked();
+        }
         if (button == &recordingButton1)
         {
-            startRecording();
-            recorder.i = 0;
+            startRecording(0);
+           
         }
         else if(button == &recordingButton2)
         {
-            startRecording();
-            recorder.i = 1;
+            startRecording(1);
         }
         else if(button == &recordingButton3)
         {
-            startRecording();
-            recorder.i = 2;
+            startRecording(2);
         }
         else if(button == &recordingButton4)
         {
-            startRecording();
-            recorder.i = 3;
+            startRecording(3);
         }
        
         if (button == &stopRecordingButton1)
         {
          stopRecording();
         }
+        if (button == &stopRecordingButton2)
+        {
+            stopRecording();
+        }
+        if (button == &stopRecordingButton2)
+        {
+            stopRecording();
+        }
+        if (button == &stopRecordingButton3)
+        {
+            stopRecording();
+        }
+        if (button == &stopRecordingButton4)
+        {
+            stopRecording();
+        }
+        if(button == &measure.button1)
+        {   
+            
+            if(trackMarked1 == true)
+            {
+                measure.button1.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked1 = false;
+            }
+            else if (trackMarked1==false)
+            {
+                measure.button1.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked1 = true;
+            }
+        }
+        if(button == &measure.button2)
+        {   
+            
+            if(trackMarked2 == true)
+            {
+                measure.button2.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked2 = false;
+            }
+            else if (trackMarked2==false)
+            {
+                measure.button2.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked2 = true;
+            }
+        }
+         if(button == &measure.button3)
+        {   
+            
+            if(trackMarked3 == true)
+            {
+                measure.button3.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked3 = false;
+            }
+            else if (trackMarked3==false)
+            {
+                measure.button3.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked3 = true;
+            }
+        }
+         if(button == &measure.button4)
+        {   
+            
+            if(trackMarked4 == true)
+            {
+                measure.button4.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked4 = false;
+            }
+            else if (trackMarked4==false)
+            {
+                measure.button4.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked4 = true;
+            }
+        }
+         if(button == &measure.button5)
+        {   
+            
+            if(trackMarked5 == true)
+            {
+                measure.button5.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked5 = false;
+            }
+            else if (trackMarked5==false)
+            {
+                measure.button5.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked5 = true;
+            }
+        }
+         if(button == &measure.button6)
+        {   
+            
+            if(trackMarked6 == true)
+            {
+                measure.button6.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked6 = false;
+            }
+            else if (trackMarked6==false)
+            {
+                measure.button6.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked6 = true;
+            }
+        }
+         if(button == &measure.button7)
+        {   
+            
+            if(trackMarked7 == true)
+            {
+                measure.button7.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked7 = false;
+            }
+            else if (trackMarked7==false)
+            {
+                measure.button7.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked7 = true;
+            }
+        }
+         if(button == &measure.button8)
+        {   
+            
+            if(trackMarked8 == true)
+            {
+                measure.button8.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked8 = false;
+            }
+            else if (trackMarked8==false)
+            {
+                measure.button8.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked8 = true;
+            }
+        }
+         if(button == &measure.button9)
+        {   
+            
+            if(trackMarked9 == true)
+            {
+                measure.button9.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked9 = false;
+            }
+            else if (trackMarked9==false)
+            {
+                measure.button9.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked9 = true;
+            }
+        }
+         if(button == &measure.button10)
+        {   
+            
+            if(trackMarked10 == true)
+            {
+                measure.button10.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked10 = false;
+            }
+            else if (trackMarked10==false)
+            {
+                measure.button10.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked10 = true;
+            }
+        }
+         if(button == &measure.button11)
+        {   
+            
+            if(trackMarked11 == true)
+            {
+                measure.button11.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked11 = false;
+            }
+            else if (trackMarked11==false)
+            {
+                measure.button11.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked11 = true;
+            }
+        }
+         if(button == &measure.button12)
+        {   
+            
+            if(trackMarked12 == true)
+            {
+                measure.button12.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked12 = false;
+            }
+            else if (trackMarked12==false)
+            {
+                measure.button12.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked12 = true;
+            }
+        }
+         if(button == &measure.button13)
+        {   
+            
+            if(trackMarked13 == true)
+            {
+                measure.button13.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked13 = false;
+            }
+            else if (trackMarked13==false)
+            {
+                measure.button13.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked13 = true;
+            }
+        }
+         if(button == &measure.button14)
+        {   
+            
+            if(trackMarked14 == true)
+            {
+                measure.button14.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked14 = false;
+            }
+            else if (trackMarked14==false)
+            {
+                measure.button14.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked14 = true;
+            }
+        }
+         if(button == &measure.button15)
+        {   
+            
+            if(trackMarked15 == true)
+            {
+                measure.button15.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked15 = false;
+            }
+            else if (trackMarked15==false)
+            {
+                measure.button15.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked15 = true;
+            }
+        }
+         if(button == &measure.button16)
+        {   
+            
+            if(trackMarked16 == true)
+            {
+                measure.button16.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked16 = false;
+            }
+            else if (trackMarked16==false)
+            {
+                measure.button16.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked16 = true;
+            }
+        }
+         if(button == &measure.button17)
+        {   
+            
+            if(trackMarked17 == true)
+            {
+                measure.button17.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked17 = false;
+            }
+            else if (trackMarked17==false)
+            {
+                measure.button17.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked17 = true;
+            }
+        }
+         if(button == &measure.button18)
+        {   
+            
+            if(trackMarked18 == true)
+            {
+                measure.button18.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked18 = false;
+            }
+            else if (trackMarked18==false)
+            {
+                measure.button18.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked18 = true;
+            }
+        }
+         if(button == &measure.button19)
+        {   
+            
+            if(trackMarked19 == true)
+            {
+                measure.button19.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked19 = false;
+            }
+            else if (trackMarked19==false)
+            {
+                measure.button19.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked19 = true;
+            }
+        }
+         if(button == &measure.button20)
+        {   
+            
+            if(trackMarked20 == true)
+            {
+                measure.button20.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked20 = false;
+            }
+            else if (trackMarked20==false)
+            {
+                measure.button20.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked20 = true;
+            }
+        }
+         if(button == &measure.button21)
+        {   
+            
+            if(trackMarked21 == true)
+            {
+                measure.button21.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked21 = false;
+            }
+            else if (trackMarked21==false)
+            {
+                measure.button21.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked21 = true;
+            }
+        }
+         if(button == &measure.button22)
+        {   
+            
+            if(trackMarked22 == true)
+            {
+                measure.button22.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked22 = false;
+            }
+            else if (trackMarked22==false)
+            {
+                measure.button22.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked22 = true;
+            }
+        }
+         if(button == &measure.button23)
+        {   
+            
+            if(trackMarked23 == true)
+            {
+                measure.button23.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked23 = false;
+            }
+            else if (trackMarked23==false)
+            {
+                measure.button23.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked23 = true;
+            }
+        }
+         if(button == &measure.button24)
+        {   
+            
+            if(trackMarked24 == true)
+            {
+                measure.button24.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked24 = false;
+            }
+            else if (trackMarked24==false)
+            {
+                measure.button24.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked24 = true;
+            }
+        }
+         if(button == &measure.button25)
+        {   
+            
+            if(trackMarked25 == true)
+            {
+                measure.button25.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked25 = false;
+            }
+            else if (trackMarked25==false)
+            {
+                measure.button25.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked25 = true;
+            }
+        }
+         if(button == &measure.button26)
+        {   
+            
+            if(trackMarked26 == true)
+            {
+                measure.button26.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked26 = false;
+            }
+            else if (trackMarked26==false)
+            {
+                measure.button26.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked26 = true;
+            }
+        }
+         if(button == &measure.button27)
+        {   
+            
+            if(trackMarked27 == true)
+            {
+                measure.button27.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked27 = false;
+            }
+            else if (trackMarked27==false)
+            {
+                measure.button27.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked27 = true;
+            }
+        }
+         if(button == &measure.button28)
+        {   
+            
+            if(trackMarked28 == true)
+            {
+                measure.button28.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked28 = false;
+            }
+            else if (trackMarked28==false)
+            {
+                measure.button28.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked28 = true;
+            }
+        }
+         if(button == &measure.button29)
+        {   
+            
+            if(trackMarked29 == true)
+            {
+                measure.button29.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked29 = false;
+            }
+            else if (trackMarked29==false)
+            {
+                measure.button29.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked29 = true;
+            }
+        }
+         if(button == &measure.button30)
+        {   
+            
+            if(trackMarked30 == true)
+            {
+                measure.button30.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked30 = false;
+            }
+            else if (trackMarked30==false)
+            {
+                measure.button30.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked30 = true;
+            }
+        }
+         if(button == &measure.button31)
+        {   
+            
+            if(trackMarked31 == true)
+            {
+                measure.button31.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked31 = false;
+            }
+            else if (trackMarked31==false)
+            {
+                measure.button31.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked31 = true;
+            }
+        }
+         if(button == &measure.button32)
+        {   
+            
+            if(trackMarked32 == true)
+            {
+                measure.button32.setColour(TextButton::buttonColourId, Colours::red);
+                trackMarked32 = false;
+            }
+            else if (trackMarked32==false)
+            {
+                measure.button32.setColour(TextButton::buttonColourId, Colours::blue);
+                trackMarked32 = true;
+            }
+        }
     }
     
  
-    void startRecording()
+    void startRecording(int trackNumeral)
     {
         
-        setAudioChannels(0,0);
+        //setAudioChannels(2,0);
+        recorder.trackNumber = trackNumeral;
         recorder.playing=false;
         recorder.recording=true;
         recorder.startRec();
@@ -563,9 +1211,10 @@ public:
     
             
     
-    void playButtonClicked()
+    void playButtonClicked(int trackNumeral)
     {
-        setAudioChannels(2,2);
+        //setAudioChannels(2,2);
+        recorder.trackNumber = trackNumeral;
         recorder.startAD();
         recorder.playing=true;
         recorder.recording=false;
@@ -587,6 +1236,11 @@ private:
 
     // Your private member variables go here...
 
+    
+    bool trackMarked1,trackMarked2,trackMarked3,trackMarked4,trackMarked5,trackMarked6,trackMarked7,trackMarked8,
+    trackMarked9,trackMarked10,trackMarked11,trackMarked12,trackMarked13,trackMarked14,trackMarked15,trackMarked16,
+    trackMarked17,trackMarked18,trackMarked19,trackMarked20,trackMarked21,trackMarked22,trackMarked23,trackMarked24,
+    trackMarked25,trackMarked26,trackMarked27,trackMarked28,trackMarked29,trackMarked30,trackMarked31,trackMarked32;
     AudioFormatManager formatManager;
     
     AudioVisual audioVis;
@@ -602,6 +1256,16 @@ private:
     TextButton recordingButton1, recordingButton2, recordingButton3, recordingButton4;
     TextButton stopRecordingButton1, stopRecordingButton2, stopRecordingButton3, stopRecordingButton4;
     
+    Measure measure;
+    TextButton
+    //Sound One
+    button1, button2, button3, button4, button5, button6, button7, button8,
+    //Sound Two
+    button9, button10, button11, button12, button13, button14, button15, button16,
+    //Sound Three
+    button17, button18, button19, button20,button21, button22, button23, button24,
+    //Sound Four
+    button25, button26, button27, button28, button29, button30, button31, button32;
     
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)

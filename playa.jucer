@@ -5,6 +5,8 @@
               jucerVersion="4.2.1">
   <MAINGROUP id="ZvHYQ8" name="playa">
     <GROUP id="{BBC9896B-7508-10C7-E22C-86307B2D407E}" name="Source">
+      <FILE id="f1ZjQI" name="MeasureButton.h" compile="0" resource="0" file="Source/MeasureButton.h"/>
+      <FILE id="y8Yeo6" name="Measure.h" compile="0" resource="0" file="Source/Measure.h"/>
       <FILE id="o4sjXq" name="AudioFunctions.h" compile="0" resource="0"
             file="Source/AudioFunctions.h"/>
       <FILE id="uS8imi" name="AudioVisual.h" compile="0" resource="0" file="Source/AudioVisual.h"/>
