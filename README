@@ -1,0 +1,42 @@
+This senior project was an extreme learning experience. I went into with real low expectations "Oh, another ICAM class that is project based".
+But as I continued I realized it was so much more.  This project is a way for us to truly understand the essence of what ICAM
+is, and what the founders intentions were for the program. With that said, this project is still in the demo stages and I was 
+not able to complete it to the degree that I wanted to, but it is still functioning in a way that is similar to what I originally
+envisioned. 
+
+Thinks to work on:
+1) Make it so the Button GUI can actually interact with the placement of sounds 
+  -This was by far the toughest part of the project
+  -If I could I would go back and make project a lot more simplistic, yet alot more artsy
+2) The recording audio is playing the samples back faster than they're suppose to be recorder
+  -Personally I like this and think it makes it sounds unique, but I know for commercial
+  use this is not practical at all, and unacceptable
+3) Implement filters
+  -This is something that I should have set as a stretch goal, as it wasn't lucrative 
+  to the overall design of the project.
+4) Make it so the "Stop Recording" buttons update and toggle back when 220,500 samples is reached (5 seconds worth of samples)
+  
+Thinks that went right:
+1) Was able to record audio to strictly a buffer, despite the fact that it seemed everyone online has struggled to to accomplish
+recording and play back
+  -This definitely would not have been possible without Elliot's help.
+2) Was able to implement a less cluttered GUI.
+3) Was able to implement a master play despite the fact it didn't function as I originally hoped it would
+
+Future Work:
+1) DEFINITELY enhance the GUI
+2) Fix the playback of the audio
+3) Find a way to do specific sound placement 
+4) Add filters and audio adjustment (this could have been easily done, but time constraints)
+
+Process:
+The process for this project involved a lot of research, as I myself had experience with JUCE in Tom Erb's class, 
+but didn't feel I gained much insight while taking it. Needles to say, this was a huge learning curve for me. I asked
+for advice on forums, but it seemed everyone's solution was not what I was looking for; perhaps I wasn't properly articulating
+my idea. I tried to meet with Elliot once a week, and dedicated at least twelve hours a week to this project. That number
+probably seems like an exaggeration, because of the end product.
+
+Instructions:
+
+Simple record four samples and hit the master play head at the bottom and it will play them all at once.
+
