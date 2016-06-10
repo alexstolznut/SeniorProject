@@ -24,94 +24,7 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-//class masterPlayer  :   public AudioIODeviceCallback
-//{
-//public:
-//    masterPlayer
-//    :   masterSampleRate(0), nextSampleNum(0)
-//    {
-//        void starMastertAD()
-//        {
-//            deviceManager.addAudioCallback(this);
-//            deviceManager.initialise(2, 2, 0, true, "Headphones", nullptr);
-//        }
-//        
-//        void closeMasterAD()
-//        {
-//            deviceManager.closeAudioDevice();
-//            audioDeviceStopped();
-//        }
-//        void audioDeviceAboutToStart (AudioIODevice* device) override
-//        {
-//            
-//            sampleRate = device -> getCurrentSampleRate();
-//        }
-//        
-//        void audioDeviceStopped() override
-//        {
-//            sampleRate = 0;
-//        }
-//        
-//        void AudioIODeviceCallback(const float** inputChannelData, int numInputChannels,
-//                                   float** outputChannelData, int numOutputChannels,
-//                                   int numSamples)override
-//        {
-//            int oldSampleSize[3];
-//            int channelNumber[3];
-//            
-//            for(int i=0; i<3; ++i)
-//            {
-//                int masterOldSampleSize[i] = recorder.track[i].getNumSamples() * 4;
-//                int masterChannelNumber[i] = recorder.track[i].getNumChannels();
-//                
-//                setSize.masterBuffer[i](masterBuffer[i].getNumChannels(),
-//                                        masterOldSampleSize[i] + numSamples,
-//                                        true,
-//                                        true,
-//                                        false);
-//            }
-//            for(int j=0; j<channelNumber[0]; ++j)
-//            {
-//                for(int masterTrackNumber=0; masterTrackNumber<3;++masterTrackNumber)
-//                {
-//                    addFrom.masterBuffer[masterTrackNumber](j, masterOldSampleSize, recorder.track[masterTrackNumber], recorder.track[0].getNumChannels(), 0, numSamples);
-//                }
-//
-//            }
-//            if(masterPlay == true)
-//            {
-//                for(int samples=0; samples<numSamples; ++samples)
-//                {
-//                    if(++masterPosition > masterBuffer[masterTrackNumber].getNumSamples()-numSamples)
-//                    {
-//                        masterPosition = 0;
-//                    }
-//                    for (int i = 0; i < numOutputChannels; ++i)
-//                    {
-//                        if (outputChannelData[i] != nullptr)
-//                        {
-//                            float sample = track[trackNumber].getSample(i, samples+position);
-//                            outputChannelData[i][samples] = sample;
-//                        }
-//                    }
-//                }
-//                
-//            }
-//            
-//        }
-//        
-//    }
-//
-//    bool masterPlay;
-//private:
-//    AudioDeviceManager masterDeviceManager;
-//    double masterSampleRate;
-//    int64 nextSampleNum;
-//    AudioSampleBuffer masterBuffer[3];
-//    TimeSliceThread masterBackgroundThread;
-//    int masterTrackNumber;
-//    recorda recorder;
-//};
+
 class recorda   :   public AudioIODeviceCallback
 {
 
@@ -119,7 +32,7 @@ public:
     recorda (AudioThumbnail& thumbnailToUpdate)
         :   thumbnail(thumbnailToUpdate),
             backgroundThread ("Audio Recorder Thread"),
-            sampleRate(0), nextSampleNum (0), activeWriter(nullptr)
+            sampleRate(0), nextSampleNum (0)
     
     {
         backgroundThread.startThread();
@@ -172,6 +85,7 @@ public:
     
     bool playing;
     bool recording;
+    bool masterplaying;
   
     
     void audioDeviceAboutToStart (AudioIODevice* device) override
@@ -197,20 +111,24 @@ public:
        
        int oldSampleSize = track[trackNumber].getNumSamples();
        int channelNumber = track[trackNumber].getNumChannels();
+       duration = oldSampleSize;
 
-       if (recording == true)
+       if (recording == true && duration<=44100*5)
        {
            track[trackNumber].setSize( track[trackNumber].getNumChannels(),
                              oldSampleSize + numSamples,
                              true,
                              true,
                              false);
-//       trackOneOutput.setSize(trackOneOutput.getNumChannels(),
-//                              oldSampleSize + numSamples,
-//                              true,
-//                              true,
-//                              false);
-    
+         
+        
+          
+           
+           
+                    // MasterBuff.addFrom(track[trackNumber].getNumChannels(), 44100,track[trackNumber],channelNumber,0,numSamples);
+           int bufferSamplesRemaining = track[trackNumber].getNumSamples()-position;
+           int samplesThisTime = jmin(numSamples, bufferSamplesRemaining);
+           position+=samplesThisTime;
            for(int j = 0; j < channelNumber; ++j)
            {
                track[trackNumber].copyFrom(j, oldSampleSize, inputChannelData[j], numSamples);
@@ -222,27 +140,130 @@ public:
                    FloatVectorOperations::clear(outputChannelData[i], numSamples);
                }
            }
+           if(trackNumber==0)
+           {
+               thumbnail.reset(channelNumber, oldSampleSize);
+               thumbnail.addBlock(nextSampleNum,track[0], 0, oldSampleSize);
+           }
+           else if(trackNumber==1)
+           {
+               thumbnail.reset(channelNumber, oldSampleSize);
+               thumbnail.addBlock(nextSampleNum,track[1], 0, oldSampleSize);
+               std::cerr<<"1";
+           }
+           else if(trackNumber==2)
+           {
+               thumbnail.reset(channelNumber, oldSampleSize);
+               thumbnail.addBlock(nextSampleNum,track[2], 0, oldSampleSize);
+           }
+           else if(trackNumber==3)
+           {
+               thumbnail.reset(channelNumber, oldSampleSize);
+               thumbnail.addBlock(nextSampleNum,track[3], 0, oldSampleSize);
+           }
+           
+          
        }
+         
        
        if(playing == true)
        {
+           
+           
+           
+//           for(int track=0;track<3;++track)
+//           {
+//               for(int bufferSample=0; bufferSample<numSamples;++bufferSample)
+//               {
+//                   int sampleToPlay = bufferSample+position+AudioSampleBuffer(track[trackNumber], 2, 44100,numSamples);
+//                   if(track[trackNumber].isNotBypassed && numSamples < track[trackNumber].getNumSamples)
+//                   {
+//                       if(outputChannelData[i] != nullptr)
+//                       {
+//                           
+//                        outputBuffer[position] += myTracks[track].get(sampleToPlay)
+//                       }
+//                   }
+//               }
+//               
+//           }
            for(int samples=0; samples<numSamples; ++samples)
            {
+               int bufferSamplesRemaining = track[trackNumber].getNumSamples()-position;
+               int samplesThisTime = jmin(numSamples, bufferSamplesRemaining);
+             
                if(++position > track[trackNumber].getNumSamples()-numSamples)
                {
                    position = 0;
                }
+               
                for (int i = 0; i < numOutputChannels; ++i)
                {
                    if (outputChannelData[i] != nullptr)
                    {
+                       
                        float sample = track[trackNumber].getSample(i, samples+position);
+                       
                        outputChannelData[i][samples] = sample;
+                       
                    }
                }
            }
        }
-       
+           
+           
+           if(masterplaying==true)
+           {
+//               std::cerr<<samples<<std::endl;
+               for(int somesamples=0; somesamples<numSamples; ++somesamples)
+               {
+                   
+                   if(++masterPosition1 > track[0].getNumSamples()-numSamples)
+                   {
+                       masterPosition1 = 0;
+                   }
+                   else if(++masterPosition2 > track[1].getNumSamples()-numSamples)
+                   {
+                       masterPosition2 = 0;
+                   }
+                   else if(++masterPosition3 > track[2].getNumSamples()-numSamples)
+                   {
+                       masterPosition3 = 0;
+                   }
+                   else if(++masterPosition4 > track[3].getNumSamples()-numSamples)
+                   {
+                       masterPosition4 = 0;
+                   }
+                   for (int i = 0; i < numOutputChannels; ++i)
+                   {
+                       if (outputChannelData[i] != nullptr)
+                       {
+                           
+                          
+                           
+                           float sample[5];
+                           
+
+                           sample[0] = track[0].getSample(i, somesamples+masterPosition1);
+                           sample[1] = track[1].getSample(i, somesamples+masterPosition2);
+                           sample[2] = track[2].getSample(i, somesamples+masterPosition3);
+                           sample[3] = track[3].getSample(i, somesamples+masterPosition4);
+                           sample[4] = sample[0]+sample[1]+sample[2]+sample[3];
+                         
+                           
+                           outputChannelData[i][somesamples] = sample[4];
+                          
+                           
+//                           outputChannelData[i][somesamples] = sample2;
+//                           outputChannelData[i][somesamples] = sample3;
+//                           outputChannelData[i][somesamples] = sample4;
+                           
+                       }
+                   }
+                   
+               }
+           }
+//
        
 //       if(playing == true)
 //       {
@@ -269,11 +290,15 @@ public:
 
     }
 
-
-int position;
+           int duration;
+int position = 1;
+           int masterPosition1=0;
+           int masterPosition2=0;
+           int masterPosition3=0;
+           int masterPosition4=0;
 int trackNumber;
-AudioSampleBuffer track[3];
-    
+AudioSampleBuffer track[4];
+AudioSampleBuffer MasterBuff;
 private:
     AudioFormatManager formatManager;
     AudioThumbnail& thumbnail;
@@ -282,6 +307,7 @@ private:
     ScopedPointer<AudioFormatReaderSource> currentRecordingSource;
     double sampleRate;
     int64 nextSampleNum;
+               Time time;
 
     AudioSampleBuffer trackOne, trackOneOutput, trackTwo, trackThree, trackFour;
     AudioDeviceManager deviceManager;
@@ -290,8 +316,8 @@ private:
     
     
     
-    CriticalSection writerLock;
-    AudioFormatWriter::ThreadedWriter* volatile activeWriter;
+               
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(recorda)
 };
     
 class RecordingThumb    : public Component,
@@ -329,15 +355,15 @@ public:
         
         if (thumbnail.getTotalLength() > 0.0)
         {
-            const double endTime = displayFullThumb ? thumbnail.getTotalLength() : jmax (30.0, thumbnail.getTotalLength());
+//            const double endTime = displayFullThumb ? thumbnail.getTotalLength() : jmax (5.0, thumbnail.getTotalLength());
             
             Rectangle<int> thumbArea (getLocalBounds());
-            thumbnail.drawChannels (g, thumbArea.reduced (2), 0.0, endTime, 1.0f);
+            thumbnail.drawChannels (g, thumbArea.reduced (2), 0.0, 1.0, 6.0f);
         }
         else
         {
             g.setFont(14.0f);
-            g.drawFittedText("(No file recorded)", getLocalBounds(), Justification::centred, 2);
+            g.drawFittedText("(No audio recorded)", getLocalBounds(), Justification::centred, 2);
         }
     }
     
@@ -357,6 +383,233 @@ private:
     
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RecordingThumb)
 };
+               
+
+class masterPlayer   :   public AudioIODeviceCallback
+{
+   
+public:
+   masterPlayer (AudioThumbnail& masterThumbnailToUpdate)
+   :
+    masterThumbnail(masterThumbnailToUpdate),
+    recorder(thumbToRecord.getAudioThumbnail()),
+    backgroundThread ("Audio Recorder Thread"),
+    masterSampleRate(0), masterNextSampleNum (0)
+   
+   {
+       backgroundThread.startThread();
+       for (int i =0; i<3; ++i)
+       {
+           resetBuffer(i, i);
+       }
+   }
+   
+   ~masterPlayer()
+   {
+       stop();
+   } 
+   
+   void resetBuffer(int trackNum, int indexNum)
+   {
+       for(int i=0;i<3;i++)
+       {
+           masterBuffer[i][i].setSize(2, 0, false, true, false);
+       }
+   }
+   void startAD()
+   {
+       deviceManager.addAudioCallback(this);
+       deviceManager.initialise(2, 2, 0, true, "Headphones", nullptr);
+   }
+   void startRecording()
+   {
+       
+       startAD();
+       for(int i=0;i<3;i++)
+       {
+       resetBuffer(i, i);
+       }
+       masterPlaying=false;
+       masterRecording = true;
+   }
+   
+   
+   void closeAD()
+   {
+       deviceManager.closeAudioDevice();
+       audioDeviceStopped();
+       masterPlaying = false;
+       masterRecording=false;
+   }
+    
+   void stop()
+   {
+       masterRecording = false;
+       closeAD();
+       
+   }
+   
+   
+   
+   bool masterPlaying;
+   bool masterRecording;
+   
+   
+   void audioDeviceAboutToStart (AudioIODevice* device) override
+   {
+       
+       masterSampleRate = device -> getCurrentSampleRate();
+   }
+   
+   void audioDeviceStopped() override
+   {
+       masterSampleRate = 0;
+   }
+   
+   
+   //AudioIODevice, AudioDeviceManager, getCurrentSampleRate
+   
+   void audioDeviceIOCallback (const float** inputChannelData, int numInputChannels,
+                               float** outputChannelData, int numOutputChannels,
+                               int numSamples) override
+   {
+     
+       
+       int oldSampleSize = masterBuffer[0][0].getNumSamples();
+       int channelNumber = masterBuffer[0][0].getNumChannels();
+       
+       if (masterRecording == true)
+       {
+           std::cerr<<"master Recordind: "<<masterRecording<<std::endl;
+           masterBuffer[0][0].setSize( recorder.track[0].getNumChannels(),
+                                          oldSampleSize + numSamples,
+                                          true,
+                                          true,
+                                          false);
+           masterBuffer[0][0].makeCopyOf(recorder.track[0]);
+//           for(int index=0;index<3;index++)
+//           {
+//               for(int channel=0; channel<channelNumber;++channel)
+//               {
+//                   
+//                   masterBuffer[0][index].setSize( recorder.track[0].getNumChannels(),
+//                                              oldSampleSize + numSamples,
+//                                              true,
+//                                              true,
+//                                              false);
+//                   masterBuffer[0][index].makeCopyOf(recorder.track[0]);
+//                   masterBuffer[1][index].setSize( recorder.track[1].getNumChannels(),
+//                                                        oldSampleSize + numSamples,
+//                                                        true,
+//                                                        true,
+//                                                        false);
+//                   masterBuffer[1][index].makeCopyOf(recorder.track[1]);
+//
+//                   masterBuffer[2][index].setSize( recorder.track[2].getNumChannels(),
+//                                                        oldSampleSize + numSamples,
+//                                                        true,
+//                                                        true,
+//                                                        false);
+//                   masterBuffer[2][index].makeCopyOf(recorder.track[0]);
+//
+//                   masterBuffer[3][index].setSize( recorder.track[3].getNumChannels(),
+//                                                        oldSampleSize + numSamples,
+//                                                        true,
+//                                                        true,
+//                                                        false);
+//                   masterBuffer[3][index].makeCopyOf(recorder.track[0]);
+//
+//               }
+//           }
+           
+//           for(int j = 0; j < channelNumber; ++j)
+//           {
+//               masterBuffer[0][0].copyFrom(j, oldSampleSize, inputChannelData[j], numSamples);
+//           }
+           for(int i=0; i<numOutputChannels; ++i)
+           {
+               if(outputChannelData[i] != nullptr)
+               {
+                   FloatVectorOperations::clear(outputChannelData[i], numSamples);
+               }
+           }
+      
+       
+           if(masterPlaying==true)
+       {
+           std::cerr<<"Master Play Got Called"<<std::endl;
+           for(int samples=0; samples<numSamples; ++samples)
+           {
+               if(++masterPosition-1> masterBuffer[0][0].getNumSamples()-numSamples)
+               {
+                   masterPosition = 0;
+               }
+               for (int i = 0; i < numOutputChannels; ++i)
+               {
+                   if (outputChannelData[i] != nullptr)
+                   {
+                       float sample = masterBuffer[0][0].getSample(i, samples+masterPosition);
+                       outputChannelData[i][samples] = sample;
+                   }
+               }
+           }
+       }
+       
+       
+       //       if(playing == true)
+       //       {
+       //           int newPositionValue = position;
+       //           for (int i = 0; i < numOutputChannels; ++i)
+       //           {
+       //               if (outputChannelData[i] != nullptr)
+       //               {
+       //                   position = newPositionValue;
+       //                   for(int samples=0; samples<numSamples; ++samples)
+       //                   {
+       //                       if(++position > track[trackNumber].getNumSamples()-numSamples)
+       //                       {
+       //                           position = 0;
+       //                       }
+       //                       
+       //                       float sample = track[trackNumber].getSample(i, samples+position);
+       //                       outputChannelData[i][samples] = sample;
+       //                   }
+       //               }
+       //           }
+       //           //           std::cout<<position<<std::endl;
+       //       }
+       
+   }
+}
+
+
+public:
+    int masterPosition;
+    int trackNumber, indexNumber;
+    AudioSampleBuffer masterBuffer[3][3];
+    float offset;
+    int SoundOneOffset[8];
+    int SoundTwoOffset[8];
+    int SoundThreeOffset[8];
+    int SoundFourOffset[8];
+   
+private:
+    AudioFormatManager formatManager;
+    AudioThumbnail& masterThumbnail;
+    TimeSliceThread backgroundThread;
+    double masterSampleRate;
+    int64 masterNextSampleNum;
+    AudioDeviceManager deviceManager;
+    RecordingThumb thumbToRecord;
+    recorda recorder;
+    
+   
+   
+   
+   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(masterPlayer)
+   
+   
+};
 
 class MainContentComponent   : public AudioAppComponent,
                                public ChangeListener,
@@ -369,7 +622,10 @@ public:
     //==============================================================================
     MainContentComponent()
     :
-      recorder(recordingThumb1.getAudioThumbnail())
+      recorder(recordingThumb1.getAudioThumbnail()),
+      masterplayer(recordingThumb1.getAudioThumbnail()),
+      state( Starting)
+      //masterplayer(recordingThumb2.getAudioThumbnail())
     
       
     {
@@ -377,111 +633,93 @@ public:
         addAndMakeVisible(audioVis);
         
         addAndMakeVisible(recordingThumb1);
+        addAndMakeVisible(recordingThumb2);
+        addAndMakeVisible(recordingThumb3);
+        addAndMakeVisible(recordingThumb4);
         
         //Track One
         addAndMakeVisible (&playButton1);
         playButton1.setButtonText("Play");
         playButton1.addListener(this);
         playButton1.setColour(TextButton::buttonColourId, Colours::green);
-        playButton1.setEnabled(true);
+        playButton1.setEnabled(false);
         
-        addAndMakeVisible(&stopButton1);
-        stopButton1.setButtonText("Stop");
-        stopButton1.addListener(this);
-        stopButton1.setColour(TextButton::buttonColourId, Colours::red);
-        stopButton1.setEnabled(true);
+
         
         addAndMakeVisible (recordingButton1);
-        recordingButton1.setButtonText ("Record");
+        recordingButton1.setButtonText ("Start Recording");
         recordingButton1.addListener (this);
-        recordingButton1.setColour (TextButton::buttonColourId, Colour (0xffff5c6f));
+        recordingButton1.setColour (TextButton::buttonColourId, Colours::blue);
         recordingButton1.setColour (TextButton::textColourOnId, Colours::black);
         recordingButton1.setEnabled(true);
         
-        addAndMakeVisible(stopRecordingButton1);
-        stopRecordingButton1.setButtonText("Stop Recording");
-        stopRecordingButton1.addListener (this);
-        stopRecordingButton1.setColour (TextButton::buttonColourId, Colour(0x44444444));
-        stopRecordingButton1.setColour(TextButton::textColourOnId, Colours::white);
+
         
         //Track Two
         addAndMakeVisible (&playButton2);
         playButton2.setButtonText("Play");
         playButton2.addListener(this);
         playButton2.setColour(TextButton::buttonColourId, Colours::green);
-        playButton2.setEnabled(true);
+        playButton2.setEnabled(false);
         
-        addAndMakeVisible(&stopButton2);
-        stopButton2.setButtonText("Stop");
-        stopButton2.addListener(this);
-        stopButton2.setColour(TextButton::buttonColourId, Colours::red);
-        stopButton2.setEnabled(true);
+        
         
         addAndMakeVisible (recordingButton2);
-        recordingButton2.setButtonText ("Record");
+        recordingButton2.setButtonText ("Start Record");
         recordingButton2.addListener (this);
-        recordingButton2.setColour (TextButton::buttonColourId, Colour (0xffff5c6f));
+        recordingButton2.setColour (TextButton::buttonColourId, Colours::blue);
         recordingButton2.setColour (TextButton::textColourOnId, Colours::black);
         recordingButton2.setEnabled(true);
         
-        addAndMakeVisible(stopRecordingButton2);
-        stopRecordingButton2.setButtonText("Stop Recording");
-        stopRecordingButton2.addListener (this);
-        stopRecordingButton2.setColour (TextButton::buttonColourId, Colour(0x44444444));
-        stopRecordingButton2.setColour(TextButton::textColourOnId, Colours::white);
+       
         
         //Track Three
         addAndMakeVisible (&playButton3);
         playButton3.setButtonText("Play");
         playButton3.addListener(this);
         playButton3.setColour(TextButton::buttonColourId, Colours::green);
-        playButton3.setEnabled(true);
+        playButton3.setEnabled(false);
         
-        addAndMakeVisible(&stopButton3);
-        stopButton3.setButtonText("Stop");
-        stopButton3.addListener(this);
-        stopButton3.setColour(TextButton::buttonColourId, Colours::red);
-        stopButton3.setEnabled(true);
+       
         
         addAndMakeVisible (recordingButton3);
-        recordingButton3.setButtonText ("Record");
+        recordingButton3.setButtonText ("Start Record");
         recordingButton3.addListener (this);
-        recordingButton3.setColour (TextButton::buttonColourId, Colour (0xffff5c6f));
+        recordingButton3.setColour (TextButton::buttonColourId, Colours::blue);
         recordingButton3.setColour (TextButton::textColourOnId, Colours::black);
         recordingButton3.setEnabled(true);
         
-        addAndMakeVisible(stopRecordingButton3);
-        stopRecordingButton3.setButtonText("Stop Recording");
-        stopRecordingButton3.addListener (this);
-        stopRecordingButton3.setColour (TextButton::buttonColourId, Colour(0x44444444));
-        stopRecordingButton3.setColour(TextButton::textColourOnId, Colours::white);
+       
         
         //Track Four
         addAndMakeVisible (&playButton4);
         playButton4.setButtonText("Play");
         playButton4.addListener(this);
         playButton4.setColour(TextButton::buttonColourId, Colours::green);
-        playButton4.setEnabled(true);
+        playButton4.setEnabled(false);
         
-        addAndMakeVisible(&stopButton4);
-        stopButton4.setButtonText("Stop");
-        stopButton4.addListener(this);
-        stopButton4.setColour(TextButton::buttonColourId, Colours::red);
-        stopButton4.setEnabled(true);
         
         addAndMakeVisible (recordingButton4);
-        recordingButton4.setButtonText ("Record");
+        recordingButton4.setButtonText ("Start Record");
         recordingButton4.addListener (this);
-        recordingButton4.setColour (TextButton::buttonColourId, Colour (0xffff5c6f));
+        recordingButton4.setColour (TextButton::buttonColourId, Colours::blue);
         recordingButton4.setColour (TextButton::textColourOnId, Colours::black);
         recordingButton4.setEnabled(true);
         
-        addAndMakeVisible(stopRecordingButton4);
-        stopRecordingButton4.setButtonText("Stop Recording");
-        stopRecordingButton4.addListener (this);
-        stopRecordingButton4.setColour (TextButton::buttonColourId, Colour(0x44444444));
-        stopRecordingButton4.setColour(TextButton::textColourOnId, Colours::white);
-      
+        addAndMakeVisible(masterPlay);
+        masterPlay.setButtonText("Play");
+        masterPlay.addListener(this);
+        masterPlay.setColour(TextButton::buttonColourId, Colours::green);
+        masterPlay.setEnabled(true);
+        
+        addAndMakeVisible(masterStop);
+        masterStop.setButtonText("Stop");
+        masterStop.addListener(this);
+        masterStop.setColour(TextButton::buttonColourId, Colours::red);
+        masterStop.setEnabled(true);
+        
+        
+       
         
         
         addAndMakeVisible(measure);
@@ -525,6 +763,49 @@ public:
         formatManager.registerBasicFormats();
         deviceManager.removeAudioCallback(&audioVis);
         deviceManager.removeAudioCallback(&recorder);
+        
+        recordingMarked1 = true;
+        recordingMarked2 = true;
+        recordingMarked3 = true;
+        recordingMarked4 = true;
+        playMarker1 = true;
+        playMarker2 = true;
+        playMarker3 = true;
+        playMarker4 = true;
+        trackMarked1 = true;
+        trackMarked2 = true;
+        trackMarked3 = true;
+        trackMarked4 = true;
+        trackMarked5 = true;
+        trackMarked6 = true;
+        trackMarked7 = true;
+        trackMarked8 = true;
+        trackMarked9 = true;
+        trackMarked10 = true;
+        trackMarked11 = true;
+        trackMarked12 = true;
+        trackMarked13 = true;
+        trackMarked14 = true;
+        trackMarked15 = true;
+        trackMarked16 = true;
+        trackMarked17 = true;
+        trackMarked18 = true;
+        trackMarked19 = true;
+        trackMarked20 = true;
+        trackMarked21 = true;
+        trackMarked22 = true;
+        trackMarked23 = true;
+        trackMarked24 = true;
+        trackMarked25 = true;
+        trackMarked26 = true;
+        trackMarked28 = true;
+        trackMarked29 = true;
+        trackMarked30 = true;
+        trackMarked31 = true;
+        trackMarked32 = true;
+        
+        initThumbnail();
+        
 
         
         // specify the number of input and output channels that we want to open
@@ -557,13 +838,22 @@ public:
     void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill) override
     {
        
+       
       
     }
 
 
     void releaseResources() override
     {
+       
         
+        
+    }
+    void initThumbnail()
+    {
+        recordingThumb2.getAudioThumbnail();
+        recordingThumb3.getAudioThumbnail();
+        recordingThumb4.getAudioThumbnail();
         
     }
 
@@ -573,95 +863,71 @@ public:
         // (Our component is opaque, so we must completely fill the background with a solid colour)
         g.fillAll (Colours::lightblue);
 
-
+        g.setColour(Colours::white);
+        g.drawLine(700,85,300,85,2);
+        g.drawLine(700,170,300,170,2);
+        g.drawLine(700,255,300,255,2);
         // You can add your drawing code here!
     }
 
     void resized() override
     {
 
+        Rectangle<int> rect,rect2,rect3,rect4;
+        rect.setBounds(290,0,420,200);
+        rect2.setBounds(290,85,420,200);
+        rect3.setBounds(290,170,420,200);
+        rect4.setBounds(290,255,420,200);
         
-        Rectangle<int> stuff (getLocalBounds());
+        
+        if(recordingMarked1==true && recorder.duration>=44100)
+        {
+            changeState(StopRecording1);
+            std::cerr<<"change State called"<<std::endl;
+        }
+        measure.setBounds(300,400,450,400);
+        
+        recordingThumb1.setBounds(rect.removeFromTop(80).removeFromRight(600).reduced(8));
         
         
-        measure.setBounds(350,100,450,400);
-        measure.button1.setBounds(50,70,10,10);
-        measure.button2.setBounds(100,70,10,10);
-        measure.button3.setBounds(150,70,10,10);
-        measure.button4.setBounds(200,70,10,10);
-        measure.button5.setBounds(250,70,10,10);
-        measure.button6.setBounds(300,70,10,10);
-        measure.button7.setBounds(350,70,10,10);
-        measure.button8.setBounds(400,70,10,10);
         
-        //Sound Two
-        measure.button9.setBounds(50,145,10,10);
-        measure.button10.setBounds(100,145,10,10);
-        measure.button11.setBounds(150,145,10,10);
-        measure.button12.setBounds(200,145,10,10);
-        measure.button13.setBounds(250,145,10,10);
-        measure.button14.setBounds(300,145,10,10);
-        measure.button15.setBounds(350,145,10,10);
-        measure.button16.setBounds(400,145,10,10);
+        recordingThumb2.setBounds(rect2.removeFromTop(80).removeFromRight(600).reduced(8));
         
-        //Sound Three
-        measure.button17.setBounds(50,220,10,10);
-        measure.button18.setBounds(100,220,10,10);
-        measure.button19.setBounds(150,220,10,10);
-        measure.button20.setBounds(200,220,10,10);
-        measure.button21.setBounds(250,220,10,10);
-        measure.button22.setBounds(300,220,10,10);
-        measure.button23.setBounds(350,220,10,10);
-        measure.button24.setBounds(400,220,10,10);
         
-        //Sound Four
+        recordingThumb3.setBounds(rect3.removeFromTop(80).removeFromRight(600).reduced(8));
         
-        measure.button25.setBounds(50,295,10,10);
-        measure.button26.setBounds(100,295,10,10);
-        measure.button27.setBounds(150,295,10,10);
-        measure.button28.setBounds(200,295,10,10);
-        measure.button29.setBounds(250,295,10,10);
-        measure.button30.setBounds(300,295,10,10);
-        measure.button31.setBounds(350,295,10,10);
-        measure.button32.setBounds(400,295,10,10);
         
-        //Track One
-        recordingThumb1.setBounds(stuff.removeFromTop(100).removeFromRight(600).reduced(8));
+        recordingThumb4.setBounds(rect4.removeFromTop(80).removeFromRight(600).reduced(8));
+        
+      
         
         playButton1.setBounds(10, 10, (getWidth()/4) - 20, 20);
-        stopButton1.setBounds(10, 45, (getWidth()/4) -20, 20);
-        recordingButton1.setBounds (10, 75, (getWidth()/4) -20, 20);
-        stopRecordingButton1.setBounds (10, 105, (getWidth()/4) -20, 20);
+        recordingButton1.setBounds (10, 45, (getWidth()/4) -20, 20);
+        
         
         //Track Two
         //recordingThumb.setBounds(stuff.removeFromTop(250).removeFromRight(600).reduced(8));
         
-        playButton2.setBounds(10, 165, (getWidth()/4) - 20, 20);
-        stopButton2.setBounds(10, 195, (getWidth()/4) -20, 20);
-        recordingButton2.setBounds (10, 225, (getWidth()/4) -20, 20);
-        stopRecordingButton2.setBounds (10, 255, (getWidth()/4) -20, 20);
+        playButton2.setBounds(10, 95, (getWidth()/4) - 20, 20);
+        recordingButton2.setBounds (10, 130, (getWidth()/4) -20, 20);
+        
         
         //Track Three
         //recordingThumb.setBounds(stuff.removeFromTop(400).removeFromRight(600).reduced(8));
         
-        playButton3.setBounds(10, 315, (getWidth()/4) - 20, 20);
-        stopButton3.setBounds(10, 345, (getWidth()/4) -20, 20);
-        recordingButton3.setBounds (10, 375, (getWidth()/4) -20, 20);
-        stopRecordingButton3.setBounds (10, 405, (getWidth()/4) -20, 20);
+        playButton3.setBounds(10, 180, (getWidth()/4) - 20, 20);
+        recordingButton3.setBounds (10, 215, (getWidth()/4) -20, 20);
+       
         
         //Track Two
         //recordingThumb.setBounds(stuff.removeFromTop(550).removeFromRight(600).reduced(8));
         
-        playButton4.setBounds(10, 465, (getWidth()/4) - 20, 20);
-        stopButton4.setBounds(10, 495, (getWidth()/4) -20, 20);
-        recordingButton4.setBounds (10, 525, (getWidth()/4) -20, 20);
-        stopRecordingButton4.setBounds (10, 555, (getWidth()/4) -20, 20);
-       
+        playButton4.setBounds(10, 265, (getWidth()/4) - 20, 20);
+        recordingButton4.setBounds (10, 300, (getWidth()/4) -20, 20);
         
-        
-      
+        masterPlay.setBounds(10,450,(getWidth()/4) - 20, 75);
+        masterStop.setBounds(10,550,(getWidth()/4) - 20, 75);
     }
-    
     
     
    
@@ -670,79 +936,137 @@ public:
     {
         if(button == &playButton1)
         {
-            playButtonClicked(0);
+            if(playMarker1==true)
+            {
+                playButtonClicked(0);
+                changeState(Playing1);
+            }
+            else if(playMarker1==false)
+            {
+                stopButtonClicked();
+                changeState(StopPlaying1);
+
+            }
         }
         else if(button == &playButton2)
         {
-            playButtonClicked(1);
+            if(playMarker2==true)
+            {
+                playButtonClicked(1);
+                changeState(Playing2);
+            }
+            else if(playMarker2==false)
+            {
+                stopButtonClicked();
+                changeState(StopPlaying2);
+            }
         }
         else if(button == &playButton3)
         {
-            playButtonClicked(2);
+            if(playMarker3==true)
+            {
+                playButtonClicked(2);
+                changeState(Playing3);
+            }
+            else if(playMarker3==false)
+            {
+                stopButtonClicked();
+                changeState(StopPlaying3);
+            }
         }
         else if(button == &playButton4)
         {
-            playButtonClicked(3);
+            if(playMarker4==true)
+            {
+                playButtonClicked(3);
+                changeState(Playing4);
+            }
+            else if(playMarker4==false)
+            {
+                stopButtonClicked();
+                changeState(StopPlaying4);
+            }
         }
-        if(button == &stopButton1)
-        {
-            stopButtonClicked();
-        }
-        if(button == &stopButton2)
-        {
-            stopButtonClicked();
-        }
-        if(button == &stopButton3)
-        {
-            stopButtonClicked();
-        }
-        if(button == &stopButton4)
-        {
-            stopButtonClicked();
-        }
+      
         if (button == &recordingButton1)
         {
-            startRecording(0);
+            if(recordingMarked1==true)
+            {
+                recordingTrackNumber = 0;
+                startRecording(recordingTrackNumber);
+                changeState(Recording1);
+            }
+            else if(recordingMarked1==false /*|| recorder.duration<=44100*/)
+            {
+                std::cerr<<"Recording Stop Test";
+                stopRecording();
+                changeState(StopRecording1);
+            }
            
         }
         else if(button == &recordingButton2)
         {
-            startRecording(1);
+            if(recordingMarked2==true)
+            {
+                recordingTrackNumber = 1;
+                startRecording(recordingTrackNumber);
+                changeState(Recording2);
+            }
+            else if(recordingMarked2==false)
+            {
+                stopRecording();
+                changeState(StopRecording2);
+                
+            }
         }
         else if(button == &recordingButton3)
         {
-            startRecording(2);
+            if(recordingMarked3==true)
+            {
+                recordingTrackNumber=2;
+                startRecording(recordingTrackNumber);
+                changeState(Recording3);
+
+            }
+            else if(recordingMarked3==false)
+            {
+                stopRecording();
+                changeState(StopRecording3);
+                
+            }
         }
         else if(button == &recordingButton4)
         {
-            startRecording(3);
+            if(recordingMarked4==true)
+            {
+                recordingTrackNumber=3;
+                startRecording(recordingTrackNumber);
+                changeState(Recording4);
+            }
+            else if(recordingMarked4==false)
+            {
+                stopRecording();
+                changeState(StopRecording4);
+                
+            }
         }
-       
-        if (button == &stopRecordingButton1)
+        
+        if(button==&masterPlay)
         {
-         stopRecording();
+            playMasterTrack();
         }
-        if (button == &stopRecordingButton2)
+        if(button==&masterStop)
         {
-            stopRecording();
+            stopMasterTrack();
         }
-        if (button == &stopRecordingButton2)
-        {
-            stopRecording();
-        }
-        if (button == &stopRecordingButton3)
-        {
-            stopRecording();
-        }
-        if (button == &stopRecordingButton4)
-        {
-            stopRecording();
-        }
+
+
         if(button == &measure.button1)
         {   
             
             if(trackMarked1 == true)
             {
+                setSoundOneOffset(0);
                 measure.button1.setColour(TextButton::buttonColourId, Colours::red);
                 trackMarked1 = false;
             }
@@ -752,6 +1076,7 @@ public:
                 trackMarked1 = true;
             }
         }
+        
         if(button == &measure.button2)
         {   
             
@@ -1186,39 +1511,145 @@ public:
                 trackMarked32 = true;
             }
         }
+        
     }
+
     
  
     void startRecording(int trackNumeral)
     {
         
         //setAudioChannels(2,0);
-        recorder.trackNumber = trackNumeral;
+        recorder.duration=0;
         recorder.playing=false;
         recorder.recording=true;
+        recorder.trackNumber = trackNumeral;
+        std::cerr<<recorder.trackNumber;
         recorder.startRec();
+        if(recorder.trackNumber==0)
+        {
+            recordingButton2.setEnabled(false);
+            recordingButton3.setEnabled(false);
+            recordingButton4.setEnabled(false);
+        }
+        else if(recorder.trackNumber==1)
+        {
+            recordingButton1.setEnabled(false);
+            recordingButton3.setEnabled(false);
+            recordingButton4.setEnabled(false);
+        }
+        else if(recorder.trackNumber==2)
+        {
+            recordingButton1.setEnabled(false);
+            recordingButton2.setEnabled(false);
+            recordingButton4.setEnabled(false);
+        }
+        else if(recorder.trackNumber==3)
+        {
+            recordingButton1.setEnabled(false);
+            recordingButton2.setEnabled(false);
+            recordingButton3.setEnabled(false);
+        }
+    }
+    
+    void setSoundOneOffset(int numeral)
+    {
+        masterplayer.startRecording();
+    }
+    void playMasterTrack()
+    {
         
+        recorder.recording=false;
+        recorder.playing=false;
+        recorder.masterplaying=true;
+        recorder.startAD();
+        recorder.masterPosition1 = 0;
+        recorder.masterPosition2 = 0;
+        recorder.masterPosition3 = 0;
+        recorder.masterPosition4 = 0;
+        setAudioChannels(2,2);
         
     }
+    void stopMasterTrack()
+    {
+        recorder.masterplaying = false;
+        recorder.closeAD();
+        setAudioChannels(0,0);
+        
+    }
+    void masterStopRecording()
+    {
+        masterplayer.stop();
+        masterplayer.masterRecording = false;
+    }
+    
+//    void setSoundOneOffset(int numeral)
+//    {
+//        int masterOffset[4];
+//        int setOffset = 44100;
+//        if(numeral==0 && trackMarked1==true)
+//        {
+//            masterOffset[numeral] = setOffset*numeral;
+//            //call on function that appends track[trackNumber] to masterBuffer[0][numeral]
+//        }
+//        else if(numeral==0 && trackMarked1==false)
+//        {
+//            masterplayer.masterBuffer[0][numeral].clear();
+//        }
+//        else if(numeral==1 && trackMarked2==true)
+//        {
+//            masterOffset[numeral] = setOffset*numeral;
+//        }
+//        else if(numeral==1 && trackMarked2==false)
+//        {
+//            masterplayer.masterBuffer[0][numeral].clear();
+//        }
+//        else if(numeral==2 && trackMarked3==true)
+//        {
+//            masterOffset[numeral] = setOffset*numeral;
+//        }
+//        else if(numeral==2 && trackMarked3==false)
+//        {
+//            masterplayer.masterBuffer[0][numeral].clear();
+//        }
+//        else if(numeral==3 && trackMarked4==true)
+//        {
+//            masterOffset[numeral] = setOffset*numeral;
+//        }
+//        else if(numeral==3 && trackMarked4==false)
+//        {
+//            masterplayer.masterBuffer[0][numeral].clear();
+//        }
+//       
+//    }
     void stopRecording()
     {
         recorder.stop();
         recorder.recording = false;
         
     }
-  
+   
+    void setStopRecordingButtonGUI()
+    {
+        recordingButton1.setButtonText("Start Recording");
+        recordingButton1.setColour(TextButton::buttonColourId, Colours::blue);
+        recordingMarked1 = true;
+        recordingButton2.setEnabled(true);
+        recordingButton3.setEnabled(true);
+        recordingButton4.setEnabled(true);
+    }
     
     
-            
     
     void playButtonClicked(int trackNumeral)
     {
         //setAudioChannels(2,2);
+        recorder.recording=false;
         recorder.trackNumber = trackNumeral;
         recorder.startAD();
         recorder.playing=true;
-        recorder.recording=false;
         recorder.position = 0;
+    
         
     }
     
@@ -1229,23 +1660,363 @@ public:
         setAudioChannels(0,0);
         //recordingThumb.displayFullThumbnail(true);
     }
-
-
+   
+   
+public:
+    int recordingTrackNumber;
 private:
     //==============================================================================
 
     // Your private member variables go here...
+    enum guiState{
+        Starting,
+        Recording1,
+        StopRecording1,
+        Recording2,
+        StopRecording2,
+        Recording3,
+        StopRecording3,
+        Recording4,
+        StopRecording4,
+        Playing1,
+        StopPlaying1,
+        Playing2,
+        StopPlaying2,
+        Playing3,
+        StopPlaying3,
+        Playing4,
+        StopPlaying4
+        
+    };
+    
+    void changeState(guiState newState)
+    {
+        if(state != newState)
+        {
+            state = newState;
+            
+            switch (state)
+            {
+                case Starting:
+                    recordingButton1.setButtonText("Start Recording");
+                    recordingButton1.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked1 = true;
+                    recordingButton2.setButtonText("Start Recording");
+                    recordingButton2.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked2 = true;
+                    recordingButton3.setButtonText("Start Recording");
+                    recordingButton3.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked3 = true;
+                    recordingButton4.setButtonText("Start Recording");
+                    recordingButton4.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked4 = true;
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton1.setButtonText("Play");
+                    playButton2.setButtonText("Play");
+                    playButton3.setButtonText("Play");
+                    playButton4.setButtonText("Play");
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    break;
+                
+                case Recording1:
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    recordingButton1.setButtonText("Stop Recording");
+                    recordingButton1.setColour(TextButton::buttonColourId, Colour(0xffff5c6f));
+                     recordingMarked1 = false;
+                    break;
+                
+                case StopRecording1:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton1.setEnabled(true);
+                    recordingButton1.setButtonText("Start Recording");
+                    recordingButton1.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked1 = true;
+                    trackDone1 = true;
+                    if(trackDone2==true)
+                    {
+                        playButton2.setEnabled(true);
+                    }
+                    if(trackDone3==true)
+                    {
+                        playButton3.setEnabled(true);
+                        
+                    }
+                    if(trackDone4==true)
+                    {
+                        playButton4.setEnabled(true);
+                    }
 
+                    break;
+                    
+                case Recording2:
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    recordingButton1.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    recordingButton2.setButtonText("Stop Recording");
+                    recordingButton2.setColour(TextButton::buttonColourId, Colour(0xffff5c6f));
+                    recordingMarked2 = false;
+                    
+                    break;
+                
+                case StopRecording2:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton2.setEnabled(true);
+                    recordingButton2.setButtonText("Start Recording");
+                    recordingButton2.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked2 = true;
+                    trackDone2=true;
+                        if(trackDone1==true)
+                        {
+                            playButton1.setEnabled(true);
+                        }
+                         if(trackDone3==true)
+                        {
+                            playButton3.setEnabled(true);
+                            
+                        }
+                        if(trackDone4==true)
+                        {
+                            playButton4.setEnabled(true);
+                        }
+                    break;
+                    
+                case Recording3:
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    recordingButton3.setButtonText("Stop Recording");
+                    recordingButton3.setColour(TextButton::buttonColourId, Colour(0xffff5c6f));
+                    recordingMarked3 = false;
+                    break;
+                    
+                case StopRecording3:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton3.setEnabled(true);
+                    recordingButton3.setButtonText("Start Recording");
+                    recordingButton3.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked3 = true;
+                    trackDone3=true;
+                    if(trackDone1==true)
+                    {
+                        playButton1.setEnabled(true);
+                    }
+                    if(trackDone2==true)
+                    {
+                        playButton2.setEnabled(true);
+                        
+                    }
+                    if(trackDone4==true)
+                    {
+                        playButton4.setEnabled(true);
+                    }
+
+                    break;
+                    
+                case Recording4:
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setButtonText("Stop Recording");
+                    recordingButton4.setColour(TextButton::buttonColourId, Colour(0xffff5c6f));
+                    recordingMarked4 = false;
+                    break;
+                    
+                case StopRecording4:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton4.setEnabled(true);
+                    recordingButton4.setButtonText("Start Recording");
+                    recordingButton4.setColour(TextButton::buttonColourId, Colours::blue);
+                    recordingMarked4 = true;
+                    trackDone4=true;
+                    if(trackDone1==true)
+                    {
+                        playButton1.setEnabled(true);
+                    }
+                    else if(trackDone2==true)
+                    {
+                        playButton2.setEnabled(true);
+                        
+                    }
+                    else if(trackDone3==true)
+                    {
+                        playButton3.setEnabled(true);
+                    }
+
+                    break;
+                
+                case Playing1:
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    playButton1.setButtonText("Stop");
+                    playButton1.setColour(TextButton::buttonColourId, Colours::red);
+                    playMarker1=false;
+                    break;
+                    
+                case StopPlaying1:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton2.setEnabled(true);
+                    playButton3.setEnabled(true);
+                    playButton4.setEnabled(true);
+                    playButton1.setButtonText("Play");
+                    playButton1.setColour(TextButton::buttonColourId, Colours::green);
+                    playMarker1=true;
+                    break;
+                    
+                    
+                case Playing2:
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    playButton1.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    playButton2.setButtonText("Stop");
+                    playButton2.setColour(TextButton::buttonColourId, Colours::red);
+                    playMarker2=false;
+                    break;
+                    
+                case StopPlaying2:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton1.setEnabled(true);
+                    playButton3.setEnabled(true);
+                    playButton4.setEnabled(true);
+                    playButton2.setButtonText("Play");
+                    playButton2.setColour(TextButton::buttonColourId, Colours::green);
+                    playMarker2=true;
+                    break;
+                    
+                    
+                case Playing3:
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton4.setEnabled(false);
+                    playButton3.setButtonText("Stop");
+                    playButton3.setColour(TextButton::buttonColourId, Colours::red);
+                    playMarker3=false;
+                    break;
+                    
+                case StopPlaying3:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton1.setEnabled(true);
+                    playButton2.setEnabled(true);
+                    playButton4.setEnabled(true);
+                    playButton3.setButtonText("Play");
+                    playButton3.setColour(TextButton::buttonColourId, Colours::green);
+                    playMarker3=true;
+                    break;
+                    
+                    
+                case Playing4:
+                    recordingButton1.setEnabled(false);
+                    recordingButton2.setEnabled(false);
+                    recordingButton3.setEnabled(false);
+                    recordingButton4.setEnabled(false);
+                    playButton1.setEnabled(false);
+                    playButton2.setEnabled(false);
+                    playButton3.setEnabled(false);
+                    playButton4.setButtonText("Stop");
+                    playButton4.setColour(TextButton::buttonColourId, Colours::red);
+                    playMarker4=false;
+                    break;
+                    
+                case StopPlaying4:
+                    recordingButton1.setEnabled(true);
+                    recordingButton2.setEnabled(true);
+                    recordingButton3.setEnabled(true);
+                    recordingButton4.setEnabled(true);
+                    playButton1.setEnabled(true);
+                    playButton2.setEnabled(true);
+                    playButton3.setEnabled(true);
+                    playButton4.setButtonText("Play");
+                    playButton4.setColour(TextButton::buttonColourId, Colours::green);
+                    playMarker4=true;
+                    break;
+
+
+
+                    
+                    
+                    
+
+
+
+                
+                    
+                  
+                    
+            }
+            
+        }
+    }
     
     bool trackMarked1,trackMarked2,trackMarked3,trackMarked4,trackMarked5,trackMarked6,trackMarked7,trackMarked8,
     trackMarked9,trackMarked10,trackMarked11,trackMarked12,trackMarked13,trackMarked14,trackMarked15,trackMarked16,
     trackMarked17,trackMarked18,trackMarked19,trackMarked20,trackMarked21,trackMarked22,trackMarked23,trackMarked24,
     trackMarked25,trackMarked26,trackMarked27,trackMarked28,trackMarked29,trackMarked30,trackMarked31,trackMarked32;
+    bool recordingMarked1, recordingMarked2, recordingMarked3, recordingMarked4;
+    bool playMarker1, playMarker2, playMarker3, playMarker4;
+    bool trackDone1, trackDone2, trackDone3, trackDone4;
     AudioFormatManager formatManager;
     
     AudioVisual audioVis;
     RecordingThumb recordingThumb1, recordingThumb2, recordingThumb3, recordingThumb4;
     recorda recorder;
+    masterPlayer masterplayer;
     //LiveScrollingAudioDisplay liveAudioScroller;
     ScopedPointer<AudioFormatReaderSource> readerSource;
     AudioTransportSource transportSource;
@@ -1255,6 +2026,7 @@ private:
     TextButton stopButton1, stopButton2, stopButton3, stopButton4;
     TextButton recordingButton1, recordingButton2, recordingButton3, recordingButton4;
     TextButton stopRecordingButton1, stopRecordingButton2, stopRecordingButton3, stopRecordingButton4;
+    TextButton masterPlay, masterStop;
     
     Measure measure;
     TextButton
@@ -1266,9 +2038,11 @@ private:
     button17, button18, button19, button20,button21, button22, button23, button24,
     //Sound Four
     button25, button26, button27, button28, button29, button30, button31, button32;
+    bool setRec;
+    guiState state;
+
     
-    
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
+ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
 };
 
 
@@ -1276,4 +2050,8 @@ private:
 Component* createMainContentComponent()     { return new MainContentComponent(); }
 
 
+
 #endif  // MAINCOMPONENT_H_INCLUDED
+               
+               
+
